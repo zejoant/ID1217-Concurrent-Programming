@@ -161,6 +161,7 @@ void *Worker(void *arg) {
   maxVals[myid*3+2] = max[2];
   Barrier();
   if (myid == 0) {
+    printf("thread id: %d\n", myid);
     total = 0;
     for (i = 0; i < numWorkers; i++){
       total += sums[i];

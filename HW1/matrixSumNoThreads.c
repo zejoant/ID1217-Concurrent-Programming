@@ -27,6 +27,7 @@ pthread_cond_t go;  /* condition variable for leaving */
 int numWorkers;     /* number of workers */
 int numArrived = 0; /* number who have arrived */
 
+
 /* timer */
 double read_timer()
 {
@@ -43,11 +44,12 @@ double read_timer()
 }
 
 double start_time, end_time; /* start and end times */
-int size, stripSize;         /* assume size is multiple of numWorkers */   
+int size, stripSize;         /* assume size is multiple of numWorkers */     
 int min[] = {INT_MAX, 0, 0};
 int max[] = {0, 0, 0};
 int sum = 0;
 int matrix[MAXSIZE][MAXSIZE]; /* matrix */
+int nextRow = 0;
 
 void *Worker(void *);
 
@@ -55,24 +57,11 @@ void *Worker(void *);
 int main(int argc, char *argv[])
 {
     int i, j;
-    long l; /* use long in case of a 64-bit system */
-    pthread_attr_t attr;
-    pthread_t workerid[MAXWORKERS];
-
-    /* set global thread attributes */
-    pthread_attr_init(&attr);
-    pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
-
-    pthread_mutex_init(&lock, NULL);
-
-    /* read command line args if any */
     size = (argc > 1) ? atoi(argv[1]) : MAXSIZE;
-    numWorkers = (argc > 2) ? atoi(argv[2]) : MAXWORKERS;
-    if (size > MAXSIZE)
-        size = MAXSIZE;
-    if (numWorkers > MAXWORKERS)
-        numWorkers = MAXWORKERS;
-    stripSize = size / numWorkers;
+    int sum = 0;
+    int max[] = {0, 0, 0};
+    int min[] = {INT_MAX, 0, 0};
+
 
     /* initialize the matrix */
     for (i = 0; i < size; i++)
@@ -98,9 +87,22 @@ int main(int argc, char *argv[])
 
     /* do the parallel work: create the workers */
     start_time = read_timer();
-    for (l = 0; l < numWorkers; l++){
-        pthread_create(&workerid[l], &attr, Worker, (void *)l);
-        pthread_join(workerid[l], NULL);
+    for (i = 0; i < size; i++)
+    {
+        for (j = 0; j < size; j++)
+        {
+            sum += matrix[i][j];
+            if (matrix[i][j] > max[0]){
+                max[0] = matrix[i][j];
+                max[1] = i;
+                max[2] = j;
+            }
+            if (matrix[i][j] < min[0]){
+                min[0] = matrix[i][j];
+                min[1] = i;
+                min[2] = j;
+            }
+        }
     }
     end_time = read_timer();
     printf("The min is %d at position %d,%d\n", min[0], min[2], min[1]);
@@ -110,46 +112,3 @@ int main(int argc, char *argv[])
     pthread_exit(NULL);
 }
 
-/* Each worker sums the values in one strip of the matrix.
-   After a barrier, worker(0) computes and prints the total */
-void *Worker(void *arg)
-{
-    long myid = (long)arg;
-    int total, i, j, first, last;
-  
-
-#ifdef DEBUG
-    printf("worker %d (pthread id %d) has started\n", myid, pthread_self());
-#endif
-
-    /* determine first and last rows of my strip */
-    first = myid * stripSize;
-    last = (myid == numWorkers - 1) ? (size - 1) : (first + stripSize - 1);
-
-    /* sum values in my strip */
-    for (i = first; i <= last; i++)
-        for (j = 0; j < size; j++)
-        {
-            //pthread_mutex_lock(&lock);
-            sum += matrix[i][j];
-            //pthread_mutex_unlock(&lock);
-            if (matrix[i][j] < min[0]){
-                if (matrix[i][j] < min[0]){
-                    pthread_mutex_lock(&lock);
-                    min[0] = matrix[i][j];
-                    min[1] = i;
-                    min[2] = j;
-                    pthread_mutex_unlock(&lock);
-                }
-            }
-            if (matrix[i][j] > max[0]){
-                if (matrix[i][j] > max[0]){
-                    pthread_mutex_lock(&lock);
-                    max[0] = matrix[i][j];
-                    max[1] = i;
-                    max[2] = j;
-                    pthread_mutex_unlock(&lock);
-                }
-            }
-        }
-}
