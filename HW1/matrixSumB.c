@@ -42,10 +42,16 @@ double read_timer()
     return (end.tv_sec - start.tv_sec) + 1.0e-6 * (end.tv_usec - start.tv_usec);
 }
 
+struct val_and_pos{
+  int val, x, y
+};
+
 double start_time, end_time; /* start and end times */
 int size, stripSize;         /* assume size is multiple of numWorkers */   
-int min[] = {INT_MAX, 0, 0};
-int max[] = {0, 0, 0};
+//int min[] = {INT_MAX, 0, 0};
+//int max[] = {0, 0, 0};
+struct val_and_pos min = {.val = INT_MAX, .x = 0, .y = 0};
+struct val_and_pos max = {.val = 0, .x = 0, .y = 0};
 int sum = 0;
 int matrix[MAXSIZE][MAXSIZE]; /* matrix */
 
@@ -103,9 +109,9 @@ int main(int argc, char *argv[])
         pthread_join(workerid[l], NULL);
     }
     end_time = read_timer();
-    printf("The min is %d at position %d,%d\n", min[0], min[2], min[1]);
-    printf("The max is %d at position %d,%d\n", max[0], max[2], max[1]);
-    printf("The sum is %d\n", sum);
+    printf("The total is %d\n", sum);
+    printf("The min is %d at position [%d, %d]\n", min.val, min.x, min.y);
+    printf("The max is %d at position [%d, %d]\n", max.val, max.x, max.y);
     printf("The execution time is %g sec\n", end_time - start_time);
     pthread_exit(NULL);
 }
@@ -133,21 +139,21 @@ void *Worker(void *arg)
             //pthread_mutex_lock(&lock);
             sum += matrix[i][j];
             //pthread_mutex_unlock(&lock);
-            if (matrix[i][j] < min[0]){
-                if (matrix[i][j] < min[0]){
+            if (matrix[i][j] < min.val){
+                if (matrix[i][j] < min.val){
                     pthread_mutex_lock(&lock);
-                    min[0] = matrix[i][j];
-                    min[1] = i;
-                    min[2] = j;
+                    min.val = matrix[i][j];
+                    min.y = i;
+                    min.x = j;
                     pthread_mutex_unlock(&lock);
                 }
             }
-            if (matrix[i][j] > max[0]){
-                if (matrix[i][j] > max[0]){
+            if (matrix[i][j] > max.val){
+                if (matrix[i][j] > max.val){
                     pthread_mutex_lock(&lock);
-                    max[0] = matrix[i][j];
-                    max[1] = i;
-                    max[2] = j;
+                    max.val = matrix[i][j];
+                    max.y = i;
+                    max.x = j;
                     pthread_mutex_unlock(&lock);
                 }
             }

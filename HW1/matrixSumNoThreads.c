@@ -105,8 +105,8 @@ int main(int argc, char *argv[])
         }
     }
     end_time = read_timer();
-    printf("The min is %d at position %d,%d\n", min[0], min[2], min[1]);
-    printf("The max is %d at position %d,%d\n", max[0], max[2], max[1]);
+    printf("The min is %d at position [%d, %d]\n", min[0], min[2], min[1]);
+    printf("The max is %d at position [%d, %d]\n", max[0], max[2], max[1]);
     printf("The sum is %d\n", sum);
     printf("The execution time is %g sec\n", end_time - start_time);
     pthread_exit(NULL);
