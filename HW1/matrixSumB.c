@@ -43,13 +43,11 @@ double read_timer()
 }
 
 struct val_and_pos{
-  int val, x, y
+  int val, x, y;
 };
 
 double start_time, end_time; /* start and end times */
 int size, stripSize;         /* assume size is multiple of numWorkers */   
-//int min[] = {INT_MAX, 0, 0};
-//int max[] = {0, 0, 0};
 struct val_and_pos min = {.val = INT_MAX, .x = 0, .y = 0};
 struct val_and_pos max = {.val = 0, .x = 0, .y = 0};
 int sum = 0;
@@ -90,17 +88,17 @@ int main(int argc, char *argv[])
     }
 
     /* print the matrix */
-#ifdef DEBUG
-    for (i = 0; i < size; i++)
-    {
-        printf("[ ");
-        for (j = 0; j < size; j++)
+    #ifdef DEBUG
+        for (i = 0; i < size; i++)
         {
-            printf(" %d", matrix[i][j]);
+            printf("[ ");
+            for (j = 0; j < size; j++)
+            {
+                printf(" %d", matrix[i][j]);
+            }
+            printf(" ]\n");
         }
-        printf(" ]\n");
-    }
-#endif
+    #endif
 
     /* do the parallel work: create the workers */
     start_time = read_timer();
@@ -124,18 +122,17 @@ void *Worker(void *arg)
     int total, i, j, first, last;
   
 
-#ifdef DEBUG
-    printf("worker %d (pthread id %d) has started\n", myid, pthread_self());
-#endif
+    #ifdef DEBUG
+        printf("worker %d (pthread id %d) has started\n", myid, pthread_self());
+    #endif
 
     /* determine first and last rows of my strip */
     first = myid * stripSize;
     last = (myid == numWorkers - 1) ? (size - 1) : (first + stripSize - 1);
 
     /* sum values in my strip */
-    for (i = first; i <= last; i++)
-        for (j = 0; j < size; j++)
-        {
+    for (i = first; i <= last; i++){
+        for (j = 0; j < size; j++){
             //pthread_mutex_lock(&lock);
             sum += matrix[i][j];
             //pthread_mutex_unlock(&lock);
@@ -158,4 +155,6 @@ void *Worker(void *arg)
                 }
             }
         }
+    }
+    pthread_exit(NULL);
 }
