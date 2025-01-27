@@ -139,22 +139,22 @@ void *Worker(void *arg) {
     for (j = 0; j < size; j++){
       total += matrix[i][j];
       if(matrix[i][j] < min.val){
+        pthread_mutex_lock(&lock);
         if(matrix[i][j] < min.val){
-          pthread_mutex_lock(&lock);
           min.val = matrix[i][j];
           min.y = i;
           min.x = j;
-          pthread_mutex_unlock(&lock);
         }
+        pthread_mutex_unlock(&lock);
       }
       if(matrix[i][j] > max.val){
+        pthread_mutex_lock(&lock);
         if(matrix[i][j] > max.val){
-          pthread_mutex_lock(&lock);
           max.val = matrix[i][j];
           max.y = i;
           max.x = j;
-          pthread_mutex_unlock(&lock);
         }
+        pthread_mutex_unlock(&lock);
       }
     }
 

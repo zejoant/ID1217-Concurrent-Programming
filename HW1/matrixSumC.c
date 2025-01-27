@@ -21,26 +21,9 @@
 #define MAXSIZE 10000 /* maximum matrix size */
 #define MAXWORKERS 10 /* maximum number of workers */
 
-pthread_mutex_t barrier; /* mutex lock for the barrier */
 pthread_mutex_t lock;
-pthread_cond_t go;  /* condition variable for leaving */
 int numWorkers;     /* number of workers */
 int numArrived = 0; /* number who have arrived */
-
-/* a reusable counter barrier */
-void Barrier()
-{
-    pthread_mutex_lock(&barrier);
-    numArrived++;
-    if (numArrived == numWorkers)
-    {
-        numArrived = 0;
-        pthread_cond_broadcast(&go);
-    }
-    else
-        pthread_cond_wait(&go, &barrier);
-    pthread_mutex_unlock(&barrier);
-}
 
 /* timer */
 double read_timer()
@@ -61,8 +44,6 @@ struct val_and_pos{int val, x, y};
 
 double start_time, end_time; /* start and end times */
 int size, stripSize;         /* assume size is multiple of numWorkers */     
-//int min[] = {INT_MAX, 0, 0};
-//int max[] = {0, 0, 0};
 struct val_and_pos min = {.val = INT_MAX, .x = 0, .y = 0};
 struct val_and_pos max = {.val = 0, .x = 0, .y = 0};
 int sum = 0;
@@ -79,13 +60,14 @@ int main(int argc, char *argv[])
     pthread_attr_t attr;
     pthread_t workerid[MAXWORKERS];
 
+    /*initialize random. Uncomment if desired*/
+    //srand(time(NULL));
+
     /* set global thread attributes */
     pthread_attr_init(&attr);
     pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
 
     /* initialize mutex and condition variable */
-    pthread_mutex_init(&barrier, NULL);
-    pthread_cond_init(&go, NULL);
     pthread_mutex_init(&lock, NULL);
 
     /* read command line args if any */
@@ -123,13 +105,17 @@ int main(int argc, char *argv[])
     start_time = read_timer();
     for (l = 0; l < numWorkers; l++){
         pthread_create(&workerid[l], &attr, Worker, (void *)l);
-        pthread_join(workerid[l], NULL);
     }
+    for(l= 0; l< numWorkers; l++)
+        pthread_join(workerid[l], NULL);
+
     end_time = read_timer();
+
     printf("The total is %d\n", sum);
     printf("The min is %d at position [%d, %d]\n", min.val, min.x, min.y);
     printf("The max is %d at position [%d, %d]\n", max.val, max.x, max.y);
     printf("The execution time is %g sec\n", end_time - start_time);
+
     pthread_exit(NULL);
 }
 
@@ -138,16 +124,17 @@ int main(int argc, char *argv[])
 void *Worker(void *arg)
 {
     long myid = (long)arg;
-    int total, i, j, first, last;
-    int row;
+    int row, i, workerSum;
   
 
-#ifdef DEBUG
-    printf("worker %d (pthread id %d) has started\n", myid, pthread_self());
-#endif
+    #ifdef DEBUG
+        printf("worker %d (pthread id %d) has started\n", myid, pthread_self());
+    #endif
 
     /* sum values in my strip */
     while(true){
+        workerSum = 0;
+
         pthread_mutex_lock(&lock);
         row = nextRow;
         nextRow++;
@@ -155,27 +142,33 @@ void *Worker(void *arg)
 
         if(row >= size)
             break;
+            
+        //printf("worker %d did row: %d\n", myid, row);
         
         for(i = 0; i<size; i++){
-           sum += matrix[row][i];
-           if (matrix[row][i] < min.val){
+            workerSum += matrix[row][i];
+            if (matrix[row][i] < min.val){
+                pthread_mutex_lock(&lock);
                 if (matrix[row][i] < min.val){
-                    pthread_mutex_lock(&lock);
                     min.val = matrix[row][i];
                     min.y = row;
                     min.x = i;
-                    pthread_mutex_unlock(&lock);
                 }
+                pthread_mutex_unlock(&lock);
             }
             if (matrix[row][i] > max.val){
+                pthread_mutex_lock(&lock);
                 if (matrix[row][i] > max.val){
-                    pthread_mutex_lock(&lock);
                     max.val = matrix[row][i];
                     max.y = row;
                     max.x = i;
-                    pthread_mutex_unlock(&lock);
                 }
+                pthread_mutex_unlock(&lock);
             }
         }
+
+        pthread_mutex_lock(&lock);
+        sum += workerSum;
+        pthread_mutex_unlock(&lock);
     }
 }

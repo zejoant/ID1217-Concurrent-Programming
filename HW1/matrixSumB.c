@@ -21,9 +21,7 @@
 #define MAXSIZE 10000 /* maximum matrix size */
 #define MAXWORKERS 10 /* maximum number of workers */
 
-pthread_mutex_t barrier; /* mutex lock for the barrier */
 pthread_mutex_t lock;
-pthread_cond_t go;  /* condition variable for leaving */
 int numWorkers;     /* number of workers */
 int numArrived = 0; /* number who have arrived */
 
@@ -62,6 +60,9 @@ int main(int argc, char *argv[])
     long l; /* use long in case of a 64-bit system */
     pthread_attr_t attr;
     pthread_t workerid[MAXWORKERS];
+
+    /*initialize random. Uncomment if desired*/
+    //srand(time(NULL));
 
     /* set global thread attributes */
     pthread_attr_init(&attr);
@@ -103,7 +104,9 @@ int main(int argc, char *argv[])
     /* do the parallel work: create the workers */
     start_time = read_timer();
     for (l = 0; l < numWorkers; l++){
-        pthread_create(&workerid[l], &attr, Worker, (void *)l);
+        pthread_create(&workerid[l], NULL, Worker, (void *)l);
+    }
+    for (l = 0; l < numWorkers; l++){
         pthread_join(workerid[l], NULL);
     }
     end_time = read_timer();
@@ -120,8 +123,8 @@ void *Worker(void *arg)
 {
     long myid = (long)arg;
     int total, i, j, first, last;
+    int workerSum = 0;
   
-
     #ifdef DEBUG
         printf("worker %d (pthread id %d) has started\n", myid, pthread_self());
     #endif
@@ -133,28 +136,28 @@ void *Worker(void *arg)
     /* sum values in my strip */
     for (i = first; i <= last; i++){
         for (j = 0; j < size; j++){
-            //pthread_mutex_lock(&lock);
-            sum += matrix[i][j];
-            //pthread_mutex_unlock(&lock);
+            workerSum += matrix[i][j];
             if (matrix[i][j] < min.val){
+                pthread_mutex_lock(&lock);
                 if (matrix[i][j] < min.val){
-                    pthread_mutex_lock(&lock);
                     min.val = matrix[i][j];
                     min.y = i;
                     min.x = j;
-                    pthread_mutex_unlock(&lock);
                 }
+                pthread_mutex_unlock(&lock);
             }
             if (matrix[i][j] > max.val){
+                pthread_mutex_lock(&lock);
                 if (matrix[i][j] > max.val){
-                    pthread_mutex_lock(&lock);
                     max.val = matrix[i][j];
                     max.y = i;
                     max.x = j;
-                    pthread_mutex_unlock(&lock);
                 }
+                pthread_mutex_unlock(&lock);
             }
         }
     }
-    pthread_exit(NULL);
+    pthread_mutex_lock(&lock);
+    sum += workerSum;
+    pthread_mutex_unlock(&lock);
 }
