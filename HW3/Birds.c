@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <semaphore.h>
-#include <windows.h>
+#include <unistd.h>
 
 
 #define DEFAULTBIRDS 10
@@ -21,16 +21,16 @@ void *babyBird(void *arg){
     while(true){
         sem_wait(&notEmpty);
         if(worms > 0){
-            printf("baby bird %d eats worm, worms left: %d\n", babyBirdId, worms);
             worms--;
+            printf("baby bird %d eats worm, worms left: %d\n", babyBirdId, worms);
             printf("baby bird %d sleeps\n", babyBirdId);
-            Sleep(rand()%5000+2000);
             sem_post(&notEmpty);
+            sleep(rand()%3+1);
         }
         else{
-            printf("baby bird %d alerts parent \n", babyBirdId);
+            printf("BABY BIRD %d ALERTS PARENT \n", babyBirdId);
             sem_post(&empty);
-            Sleep(rand()%5000+2000);
+            sleep(2);
         }
     }
 
@@ -41,8 +41,8 @@ void *babyBird(void *arg){
     while(true){
         sem_wait(&empty);
         printf("parent bird looks for worms\n");
-        worms = rand()%30+10;
-        Sleep(2000);
+        worms = rand()%10+5;
+        sleep(2);
         printf("parent bird found %d worms\n", worms);
         sem_post(&notEmpty);
     }
@@ -58,8 +58,8 @@ int main(int argc, char *argv[]){
     pthread_attr_init(&attr);
     pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
 
-    worms = rand()%30+10;
-	sem_init(&notEmpty, true, 1);	
+    worms = rand()%10+5;
+    sem_init(&notEmpty, true, 1);	
     sem_init(&empty, true, 0); 	
 
     for (int l = 0; l < babyBirds; l++){
@@ -71,5 +71,4 @@ int main(int argc, char *argv[]){
     return 0;
 }
 
- 
 
