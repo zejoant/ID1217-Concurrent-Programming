@@ -3,7 +3,7 @@
 #include <omp.h>
 #include <time.h>
 
-#define MAXARRAYSIZE 100000
+#define MAXARRAYSIZE 1000000
 #define MAXWORKERS 10
 
 int size;
@@ -54,33 +54,53 @@ int main(int argc, char *argv[]){
 
     size = (argc > 1) ? atoi(argv[1]) : MAXARRAYSIZE;
     numWorkers = (argc > 2) ? atoi(argv[2]) : MAXWORKERS;
-    int arraySize = sizeof(array)/sizeof(array[0]);
-
+    //int arraySize = sizeof(array)/sizeof(array[0]);
+    
     if (size > MAXARRAYSIZE){
         size = MAXARRAYSIZE;
     }
-
+    
     if (numWorkers > MAXWORKERS){
         numWorkers = MAXWORKERS;
     }
+
+    //int array[size];
 
     omp_set_num_threads(numWorkers);
 
     srand(time(NULL));
 
-    for(int i = 0; i<arraySize; i++){
+    for(int i = 0; i<size; i++){
         array[i] = rand() % 101;
     }
+
+    //print the unsorted matrix
+    #ifdef DEBUG
+    printf("Unsorted list: [");
+    for (int i = 0; i < size; i++) {
+        printf("%d, ", array[i]);
+    }
+    printf("]\n\n");
+    #endif
 
     start_time = omp_get_wtime();
     #pragma omp parallel 
     {
         #pragma omp single nowait
-        quickSort(array, 0, arraySize-1);
+        quickSort(array, 0, size-1);
     }
     end_time = omp_get_wtime();
 
-    printf("%g", end_time-start_time);
+    //print the sorted matrix
+    #ifdef DEBUG
+    printf("Sorted list: [");
+    for (int i = 0; i < size; i++) {
+        printf("%d, ", array[i]);
+    }
+    printf("]\n\n");
+    #endif
+
+    printf("It took %g seconds to sort the array", end_time-start_time);
 
     return 0;
 }
