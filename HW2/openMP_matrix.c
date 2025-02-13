@@ -23,8 +23,6 @@ int numWorkers;
 int size;
 int matrix[MAXSIZE][MAXSIZE];
 
-void *Worker(void *);
-
 /* read command line, initialize, and create threads */
 int main(int argc, char *argv[])
 {
